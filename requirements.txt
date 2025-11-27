@@ -1,8 +1,21 @@
-# System Dependencies (installed via apt-get)
-# sudo apt-get install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.0
-
-# Python dependencies (already available through system packages)
-# PyGObject is provided by python3-gi system package
-# GTK and WebKit2GTK bindings are provided by gir1.2-* packages
-
-# No additional pip packages required - all dependencies are system packages
+# Microsoft Whiteboard Desktop App - Dependencies
+# ================================================
+#
+# This application uses SYSTEM PACKAGES, not pip packages.
+# A Python virtual environment is NOT needed for this application.
+#
+# Required System Packages (install via apt):
+# -------------------------------------------
+# sudo apt-get update
+# sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+#
+# Package Descriptions:
+# - python3-gi: Python 3 bindings for gobject-introspection libraries
+# - python3-gi-cairo: Python 3 Cairo bindings for the GObject library
+# - gir1.2-gtk-3.0: GTK 3 GObject introspection bindings
+# - gir1.2-webkit2-4.1: WebKit2GTK 4.1 GObject introspection bindings
+#
+# Note: WebKit2 4.1 is required (not 4.0). Ubuntu 24.04 uses version 4.1.
+#
+# To verify installation:
+# dpkg -l | grep -E "(python3-gi|gir1.2-gtk-3.0|gir1.2-webkit2-4.1)"

@@ -16,13 +16,28 @@ A lightweight, high-performance desktop application for Ubuntu GNOME that provid
 - Ubuntu 20.04 or later (or compatible Debian-based distribution)
 - Python 3.6+
 - GTK 3.0
-- WebKit2GTK 4.0
+- WebKit2GTK 4.1 (Ubuntu 24.04+) or 4.0 (older versions)
 
 ## Installation
 
-### Quick Install
+### Quick Install (User-level - Recommended)
 
-Run the installation script:
+Register the app for the current user (no sudo required):
+
+```bash
+chmod +x register.sh
+./register.sh
+```
+
+This will:
+- Install the app to `~/.local/bin/whiteboard-app`
+- Add it to your applications menu
+- Create an icon for easy access
+- Allow you to pin it to your toolbar/favorites
+
+### System-wide Install (Optional)
+
+Run the installation script for all users:
 
 ```bash
 chmod +x install.sh
@@ -40,8 +55,8 @@ sudo apt-get install -y \
     python3-gi \
     python3-gi-cairo \
     gir1.2-gtk-3.0 \
-    gir1.2-webkit2-4.0 \
-    libwebkit2gtk-4.0-37
+    gir1.2-webkit2-4.1 \
+    libwebkit2gtk-4.1-0
 ```
 
 2. Make the script executable:
@@ -122,7 +137,12 @@ Touch events are fully supported through WebKit2GTK and GTK's native touch handl
 
 Ensure all dependencies are installed:
 ```bash
-sudo apt-get install gir1.2-webkit2-4.0 python3-gi
+sudo apt-get install gir1.2-webkit2-4.1 python3-gi
+```
+
+If running from VS Code terminal and getting library errors, use the provided `run.sh` script instead:
+```bash
+./run.sh
 ```
 
 ### Authentication issues
@@ -150,6 +170,14 @@ xinput list
 Look for your touch device in the list. If it's not detected, check your hardware drivers.
 
 ## Uninstallation
+
+### User-level Installation
+
+```bash
+./unregister.sh
+```
+
+### System-wide Installation
 
 ```bash
 sudo rm /usr/local/bin/whiteboard-app
