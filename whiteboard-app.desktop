@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Microsoft Whiteboard
+Comment=Microsoft Whiteboard Desktop App with Touch Support
+Exec=/usr/local/bin/whiteboard-app
+Icon=whiteboard-app
+Terminal=false
+Categories=Office;Graphics;Education;
+Keywords=whiteboard;drawing;collaboration;microsoft;
+StartupNotify=true
+StartupWMClass=whiteboard
