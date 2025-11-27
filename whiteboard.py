@@ -63,15 +63,64 @@ class WhiteboardApp(Gtk.Window):
                 let lastCoords = { x: 0, y: 0 };
                 let suppressScroll = false;
                 const POINTER_ID = 9999;
+                let handMode = false;
+                const HAND_CURSOR_REGEX = /(grab|grabbing|all-scroll)/i;
 
                 function resolveTarget(touch) {
                     if (activeTarget && activeTarget.isConnected) {
                         return activeTarget;
                     }
                     const hitTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-                    activeTarget = hitTarget || document.body;
+                    activeTarget = hitTarget || document.documentElement;
                     return activeTarget;
                 }
+
+                function readCursorFromElement(element) {
+                    if (!element) {
+                        return '';
+                    }
+                    const inlineCursor = element.style && element.style.cursor ? element.style.cursor : '';
+                    if (inlineCursor && HAND_CURSOR_REGEX.test(inlineCursor)) {
+                        return inlineCursor;
+                    }
+                    const computedCursor = window.getComputedStyle(element).cursor || '';
+                    return computedCursor;
+                }
+
+                function detectHandMode() {
+                    const cursorSources = [
+                        document.body,
+                        document.documentElement,
+                        document.querySelector('canvas'),
+                        document.querySelector('[role="presentation"], [data-telemetry-id*="Canvas"], [data-identifier*="canvas"]')
+                    ];
+                    handMode = cursorSources.some(source => {
+                        if (!source) {
+                            return false;
+                        }
+                        const cursor = readCursorFromElement(source);
+                        return cursor && HAND_CURSOR_REGEX.test(cursor);
+                    });
+                }
+
+                function applyTouchAction() {
+                    const value = handMode ? 'auto' : 'none';
+                    if (document.documentElement) {
+                        document.documentElement.style.overscrollBehavior = handMode ? 'auto' : 'none';
+                        document.documentElement.style.touchAction = value;
+                    }
+                    if (document.body) {
+                        document.body.style.overscrollBehavior = handMode ? 'auto' : 'none';
+                        document.body.style.touchAction = value;
+                    }
+                }
+
+                function updateMode() {
+                    detectHandMode();
+                    applyTouchAction();
+                }
+
+                setInterval(updateMode, 200);
 
                 function dispatchPointerEvent(type, touch, buttonsValue) {
                     const target = resolveTarget(touch);
@@ -83,7 +132,7 @@ class WhiteboardApp(Gtk.Window):
                         screenX: touch.screenX,
                         screenY: touch.screenY,
                         pointerId: POINTER_ID,
-                        pointerType: 'mouse',
+                        pointerType: 'pen',
                         isPrimary: true,
                         buttons: buttonsValue,
                         button: 0,
@@ -122,6 +171,9 @@ class WhiteboardApp(Gtk.Window):
                 }
 
                 window.addEventListener('touchstart', function(event) {
+                    if (handMode) {
+                        return true;
+                    }
                     if (activeTouchId !== null) {
                         return consumeEvent(event);
                     }
@@ -140,10 +192,13 @@ class WhiteboardApp(Gtk.Window):
                     dispatchPointerEvent('pointerenter', touch, 0);
                     dispatchPointerEvent('pointerdown', touch, 1);
                     dispatchMouseEvent('mousedown', touch);
-                    return consumeEvent(event);
+                    // Don't consume - let the event continue for UI interactions
                 }, true);
 
                 window.addEventListener('touchmove', function(event) {
+                    if (handMode) {
+                        return true;
+                    }
                     if (activeTouchId === null) {
                         return consumeEvent(event);
                     }
@@ -171,6 +226,9 @@ class WhiteboardApp(Gtk.Window):
                 }
 
                 window.addEventListener('touchend', function(event) {
+                    if (handMode) {
+                        return true;
+                    }
                     if (activeTouchId === null) {
                         return consumeEvent(event);
                     }
@@ -179,10 +237,13 @@ class WhiteboardApp(Gtk.Window):
                         return consumeEvent(event);
                     }
                     endTouch(touch);
-                    return consumeEvent(event);
+                    // Don't consume - let the event continue for UI interactions
                 }, true);
 
                 window.addEventListener('touchcancel', function(event) {
+                    if (handMode) {
+                        return true;
+                    }
                     if (activeTouchId === null) {
                         return consumeEvent(event);
                     }
@@ -198,6 +259,9 @@ class WhiteboardApp(Gtk.Window):
 
                 // Block pointer events originating from touch so only mouse events remain
                 const pointerBlocker = function(event) {
+                    if (handMode) {
+                        return;
+                    }
                     if (event.pointerType === 'touch') {
                         event.preventDefault();
                         event.stopPropagation();
@@ -211,6 +275,9 @@ class WhiteboardApp(Gtk.Window):
 
                 // Prevent wheel/scroll events while finger drawing
                 window.addEventListener('wheel', function(event) {
+                    if (handMode) {
+                        return;
+                    }
                     if (suppressScroll) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -218,6 +285,9 @@ class WhiteboardApp(Gtk.Window):
                 }, { passive: false, capture: true });
 
                 window.addEventListener('scroll', function(event) {
+                    if (handMode) {
+                        return;
+                    }
                     if (suppressScroll) {
                         window.scrollTo(0, 0);
                         event.preventDefault();
@@ -225,10 +295,12 @@ class WhiteboardApp(Gtk.Window):
                     }
                 }, true);
 
-                document.documentElement.style.overscrollBehavior = 'none';
-                document.documentElement.style.touchAction = 'none';
-                document.body.style.overscrollBehavior = 'none';
-                document.body.style.touchAction = 'none';
+                // Wait for body to exist before applying initial styles
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyTouchAction);
+                } else {
+                    applyTouchAction();
+                }
 
                 console.log('[TouchCapture] Touch-to-mouse injector ready');
             })();
@@ -236,7 +308,7 @@ class WhiteboardApp(Gtk.Window):
         
         script = WebKit2.UserScript(
             touch_to_mouse_script,
-            WebKit2.UserContentInjectedFrames.ALL_FRAMES,
+            WebKit2.UserContentInjectedFrames.TOP_FRAME,
             WebKit2.UserScriptInjectionTime.START,
             None,
             None
